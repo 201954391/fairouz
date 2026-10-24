@@ -1,0 +1,43 @@
+# --- Python bytecode / build ---
+__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+*.egg-info/
+.eggs/
+wheels/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Testing / tooling caches ---
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- Environment variables / secrets ---
+.env
+.streamlit/secrets.toml
+
+# --- IDEs ---
+.vscode/
+.idea/
+*.swp
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Generated results (keep the folder README) ---
+results/*
+!results/README.md
+
+# --- Logs ---
+*.log

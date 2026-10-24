@@ -1,0 +1,10 @@
+# Streamlit reads this file when the app is run from the project root.
+[theme]
+base = "light"
+primaryColor = "#0F766E"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F3F6F8"
+textColor = "#1F2933"
+
+[client]
+toolbarMode = "minimal"
