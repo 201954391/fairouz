@@ -11,6 +11,19 @@ import streamlit as st
 import config
 
 EMPTY_VALUE = "—"
+NOT_AVAILABLE_YET = "Not available yet"
+
+AFFINITY_LABEL = "Predicted Docking Affinity"
+AFFINITY_HELP = (
+    "AutoDock Vina's estimate for the best predicted pose, in kcal/mol. More "
+    "negative values indicate a more favourable predicted pose within this "
+    "docking setup. An estimate, not a measured binding affinity."
+)
+AFFINITY_EXPLANATION = (
+    "More negative Vina scores generally indicate a more favourable predicted "
+    "binding pose within this specific docking setup. These predictions are "
+    "estimates and require experimental validation."
+)
 
 _BASE_CSS = """
 <style>
@@ -47,6 +60,22 @@ def format_value(value: float | int | str | None, decimals: int = 2, unit: str =
     return f"{text} {unit}".strip()
 
 
+def format_descriptor(key: str, value: float | int | None) -> str:
+    """Format a descriptor value with its unit from ``config.DESCRIPTORS``."""
+    return format_value(value, unit=config.DESCRIPTORS[key]["unit"])
+
+
+def descriptor_label(key: str) -> str:
+    """Return a descriptor's display label, including its unit if it has one."""
+    descriptor = config.DESCRIPTORS[key]
+    return f"{descriptor['label']} ({descriptor['unit']})" if descriptor["unit"] else descriptor["label"]
+
+
+def format_affinity(value: float | None) -> str:
+    """Format a Vina affinity to one decimal place, its meaningful precision."""
+    return format_value(value, decimals=1, unit="kcal/mol")
+
+
 def format_status(status: str) -> str:
     """Turn a machine status such as ``"not_implemented"`` into ``"Not implemented"``."""
     readable = status.replace("_", " ").strip()
@@ -69,17 +98,17 @@ def render_project_status() -> None:
         st.markdown(f"**{component}** · {status}")
 
 
-def render_pipeline(stages: Sequence[tuple[str, str]]) -> None:
-    """Display the screening pipeline as numbered steps.
+def render_pipeline(stages: Sequence[tuple[str, str, str]]) -> None:
+    """Display the screening pipeline as numbered steps with their build status.
 
     Args:
-        stages: ``(name, description)`` pairs in pipeline order.
+        stages: ``(name, description, status)`` tuples in pipeline order.
     """
     columns = st.columns(len(stages))
-    for number, (column, (name, description)) in enumerate(zip(columns, stages), start=1):
+    for number, (column, (name, description, status)) in enumerate(zip(columns, stages), start=1):
         with column, st.container(border=True):
             st.markdown(
-                f'<div class="fairouz-step-number">STEP {number}</div>',
+                f'<div class="fairouz-step-number">STEP {number} · {status.upper()}</div>',
                 unsafe_allow_html=True,
             )
             st.markdown(f"**{name}**")

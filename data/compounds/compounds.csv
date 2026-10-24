@@ -1,0 +1,11 @@
+compound_id,name,smiles,source
+FZ-0001,Ethanol,CCO,PubChem CID 702
+FZ-0002,Benzene,C1=CC=CC=C1,PubChem CID 241
+FZ-0003,Urea,C(=O)(N)N,PubChem CID 1176
+FZ-0004,Glycine,C(C(=O)O)N,PubChem CID 750
+FZ-0005,Benzoic acid,C1=CC=C(C=C1)C(=O)O,PubChem CID 243
+FZ-0006,Salicylic acid,C1=CC=C(C(=C1)C(=O)O)O,PubChem CID 338
+FZ-0007,Aspirin,CC(=O)OC1=CC=CC=C1C(=O)O,PubChem CID 2244
+FZ-0008,Paracetamol,CC(=O)NC1=CC=C(C=C1)O,PubChem CID 1983
+FZ-0009,Ibuprofen,CC(C)CC1=CC=C(C=C1)C(C)C(=O)O,PubChem CID 3672
+FZ-0010,Caffeine,CN1C=NC2=C1C(=O)N(C(=O)N2C)C,PubChem CID 2519

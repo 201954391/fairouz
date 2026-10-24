@@ -1,0 +1,40 @@
+{
+  "target_id": "6LU7",
+  "prepared_at": "2026-10-24T11:30:10+00:00",
+  "raw_file": "6LU7.pdb",
+  "raw_sha256": "385497151c2c093d764ffbc694589c2c1db35be638e49d715d4d8af38903966e",
+  "receptor_chain": "A",
+  "steps": [
+    "Read the raw RCSB PDB file without modifying it; verify its SHA-256 checksum.",
+    "Keep model 1 and only the protease chain (chain A).",
+    "Remove the co-crystallised inhibitor N3 (chain C), which is covalently bonded to Cys145 in the crystal; Cys145 is kept as a free cysteine.",
+    "Remove all 84 crystallographic waters and any other non-protein residues.",
+    "Remove any hydrogens present so they are rebuilt consistently.",
+    "Write the cleaned heavy-atom receptor as PDB.",
+    "Run Meeko mk_prepare_receptor: match each residue to a template, add polar hydrogens, assign Gasteiger charges and AutoDock atom types, and write a rigid receptor PDBQT. Histidines use Meeko's default HIE protonation state."
+  ],
+  "clean_receptor": {
+    "residues": 306,
+    "heavy_atoms": 2367,
+    "waters_removed": 84
+  },
+  "prepared_receptor_sha256": "0646b8768fcf349927c16945f55a4741494d5b0a62d77d313844ed14c33c6c5a",
+  "binding_box": {
+    "center": [
+      -9.7675,
+      11.436,
+      68.9035
+    ],
+    "size": [
+      19.259,
+      29.956,
+      21.343
+    ],
+    "padding": 5.0,
+    "units": "angstrom"
+  },
+  "tool_versions": {
+    "gemmi": "0.7.5",
+    "meeko": "0.8.0"
+  }
+}

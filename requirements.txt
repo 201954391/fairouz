@@ -1,2 +1,9 @@
 streamlit>=1.40,<2.0
+rdkit>=2024.9
+meeko>=0.8,<0.9
+gemmi>=0.7
+scipy>=1.10
 pytest>=8.0
+
+# AutoDock Vina 1.2.x is also required. It is a separate executable, not a
+# pip package on Windows: see README › Installation.
