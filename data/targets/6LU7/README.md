@@ -11,7 +11,9 @@ python -m backend.receptor
 
 This regenerates everything in `prepared/` from `raw/6LU7.pdb` and rewrites
 `prepared/preparation_log.json`. The raw file is checked against its SHA-256
-checksum first and is never modified.
+checksum first and is never modified. Prepared files are written with LF
+line endings, the way Git stores them, so the checksum recorded in the log
+matches a fresh checkout on any platform.
 
 ## What the raw file contains
 

@@ -291,3 +291,33 @@ def test_real_batch_with_invalid_compound(tmp_path: Path) -> None:
     assert results[0]["docking_success"] is True
     assert results[1]["docking_success"] is False
     assert results[1]["best_affinity_kcal_mol"] is None
+
+
+# --- Receptor files are stable across platforms ----------------------------------
+
+def test_prepared_files_use_lf_line_endings() -> None:
+    for path in (config.PREPARED_RECEPTOR_FILE, config.CLEAN_RECEPTOR_FILE, config.PREPARATION_LOG_FILE):
+        assert b"\r\n" not in path.read_bytes(), path.name
+
+
+def test_preparation_log_checksum_matches_prepared_receptor() -> None:
+    log = json.loads(config.PREPARATION_LOG_FILE.read_text(encoding="utf-8"))
+
+    assert log["prepared_receptor_sha256"] == file_sha256(config.PREPARED_RECEPTOR_FILE)
+    assert log["raw_sha256"] == config.RAW_TARGET_SHA256
+
+
+@pytest.mark.integration
+def test_regenerated_receptor_matches_repository(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """A fresh preparation (as after cloning) reproduces the committed receptor byte for byte."""
+    from backend import receptor
+
+    committed = file_sha256(config.PREPARED_RECEPTOR_FILE)
+    monkeypatch.setattr(config, "CLEAN_RECEPTOR_FILE", tmp_path / "clean.pdb")
+    monkeypatch.setattr(config, "PREPARED_RECEPTOR_FILE", tmp_path / "receptor.pdbqt")
+    monkeypatch.setattr(config, "PREPARATION_LOG_FILE", tmp_path / "log.json")
+
+    log = receptor.prepare_receptor()
+
+    assert log["prepared_receptor_sha256"] == committed
+    assert b"\r\n" not in (tmp_path / "receptor.pdbqt").read_bytes()

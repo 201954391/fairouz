@@ -23,14 +23,10 @@ import logging
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-from rdkit import Chem, RDLogger
+from rdkit import Chem, rdBase
 from rdkit.Chem import Crippen, Descriptors, rdMolDescriptors
 
 logger = logging.getLogger(__name__)
-
-# RDKit writes its own parse errors straight to stderr. We log a clearer
-# message per compound instead.
-RDLogger.DisableLog("rdApp.*")
 
 # Descriptor key -> RDKit function. Keys match config.DESCRIPTORS.
 DESCRIPTOR_CALCULATORS: dict[str, Callable[[Chem.Mol], float | int]] = {
@@ -62,7 +58,10 @@ def parse_smiles(smiles: str | None) -> Chem.Mol:
     if not cleaned:
         raise InvalidSmilesError("SMILES string is empty.")
 
-    molecule = Chem.MolFromSmiles(cleaned)
+    # RDKit prints its own parse errors; we log one clearer message per compound
+    # instead. BlockLogs is scoped, so other libraries cannot re-enable the noise.
+    with rdBase.BlockLogs():
+        molecule = Chem.MolFromSmiles(cleaned)
     # MolFromSmiles returns None on failure; a zero-atom Mol is not a molecule.
     if molecule is None or molecule.GetNumAtoms() == 0:
         raise InvalidSmilesError(f"RDKit could not parse SMILES '{cleaned}'.")

@@ -1,6 +1,6 @@
 {
   "target_id": "6LU7",
-  "prepared_at": "2026-10-24T11:30:10+00:00",
+  "prepared_at": "2026-10-24T12:12:05+00:00",
   "raw_file": "6LU7.pdb",
   "raw_sha256": "385497151c2c093d764ffbc694589c2c1db35be638e49d715d4d8af38903966e",
   "receptor_chain": "A",
@@ -18,7 +18,7 @@
     "heavy_atoms": 2367,
     "waters_removed": 84
   },
-  "prepared_receptor_sha256": "0646b8768fcf349927c16945f55a4741494d5b0a62d77d313844ed14c33c6c5a",
+  "prepared_receptor_sha256": "e05b49eba300c1300351ef33d59dd419e04189872cc1dd38922f866dc36468f0",
   "binding_box": {
     "center": [
       -9.7675,

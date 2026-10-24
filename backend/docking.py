@@ -25,6 +25,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict
 from datetime import datetime, timezone
@@ -205,6 +206,9 @@ def _docking_result(compound: Mapping[str, Any], **fields: Any) -> dict[str, Any
         "poses_generated": 0,
         "pose_file": None,
         "error": None,
+        # Wall-clock timings (seconds); informational only, never part of results.
+        "ligand_seconds": 0.0,
+        "docking_seconds": 0.0,
     }
     result.update(fields)
     return result
@@ -231,21 +235,32 @@ def dock_compound(
         per-compound problem.
     """
     compound_id = compound.get("compound_id", "")
+    started = time.perf_counter()
     try:
         ligand_text = prepare_ligand(compound.get("smiles", ""))
     except (InvalidSmilesError, LigandPreparationError) as error:
         logger.warning("Ligand preparation failed for %s: %s", compound_id, error)
-        return _docking_result(compound, error=f"Ligand preparation failed: {error}")
+        return _docking_result(
+            compound, error=f"Ligand preparation failed: {error}", ligand_seconds=time.perf_counter() - started
+        )
+    ligand_seconds = time.perf_counter() - started
 
     ligand_path = run_dir / "ligands" / f"{compound_id}.pdbqt"
     pose_path = run_dir / "poses" / f"{compound_id}_poses.pdbqt"
     ligand_path.write_text(ligand_text, encoding="utf-8")
 
+    started = time.perf_counter()
     try:
         affinities = dock_ligand(executable, receptor, ligand_path, pose_path, box)
     except DockingError as error:
         logger.warning("Docking failed for %s: %s", compound_id, error)
-        return _docking_result(compound, ligand_prepared=True, error=f"Docking failed: {error}")
+        return _docking_result(
+            compound,
+            ligand_prepared=True,
+            error=f"Docking failed: {error}",
+            ligand_seconds=ligand_seconds,
+            docking_seconds=time.perf_counter() - started,
+        )
 
     logger.info("Docked %s: best affinity %.3f kcal/mol", compound_id, affinities[0])
     return _docking_result(
@@ -255,14 +270,16 @@ def dock_compound(
         best_affinity_kcal_mol=affinities[0],
         poses_generated=len(affinities),
         pose_file=str(pose_path),
+        ligand_seconds=ligand_seconds,
+        docking_seconds=time.perf_counter() - started,
     )
 
 
 # --- Batch runs and storage ----------------------------------------------------
 
 def create_run_dir(base_dir: Path) -> Path:
-    """Create a new timestamped run folder; never reuse an existing one."""
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    """Create a new UTC-timestamped run folder; never reuse an existing one."""
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     for attempt in range(1, 100):
         suffix = "" if attempt == 1 else f"-{attempt}"
         run_dir = base_dir / f"{stamp}_{config.TARGET_ID}{suffix}"
@@ -357,7 +374,7 @@ def run_docking(
     results = []
     for number, compound in enumerate(compounds, start=1):
         if progress:
-            progress(f"Docking {number} of {len(compounds)}: {compound.get('name', '')}...")
+            progress(f"Running AutoDock Vina {number} of {len(compounds)}: {compound.get('name', '')}...")
         results.append(dock_compound(compound, run_dir, executable, receptor, box))
 
     metadata = run_metadata(executable_version, receptor, box)

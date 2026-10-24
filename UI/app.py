@@ -21,46 +21,8 @@ import streamlit as st  # noqa: E402
 
 import config  # noqa: E402
 from UI.components.sidebar import render_sidebar  # noqa: E402
-from UI.pages import results, screening  # noqa: E402
-from UI.utils.helpers import (  # noqa: E402
-    apply_base_styles,
-    render_disclaimer,
-    render_pipeline,
-    render_project_status,
-)
-
-
-def render_home() -> None:
-    """Render the home page: what Fairouz is and how to use it."""
-    st.markdown(
-        f'<p class="fairouz-wordmark">{config.PROJECT_NAME.upper()}</p>'
-        f'<p class="fairouz-subtitle">{config.PROJECT_SUBTITLE}</p>',
-        unsafe_allow_html=True,
-    )
-    st.write(config.PROJECT_DESCRIPTION)
-
-    what_column, how_column, status_column = st.columns(3)
-    with what_column, st.container(border=True):
-        st.markdown("**What it does**")
-        st.write(
-            "Screens a library of compounds against a viral protein and ranks "
-            "them by predicted research priority, so lab time can focus on the "
-            "most promising candidates."
-        )
-    with how_column, st.container(border=True):
-        st.markdown("**How to use it**")
-        st.write(
-            "Open **Screening**, choose a target and the number of compounds, "
-            "then start the run. Ranked candidates appear under **Results**."
-        )
-    with status_column, st.container(border=True):
-        st.markdown("**Project status**")
-        render_project_status()
-
-    st.subheader("Screening pipeline")
-    render_pipeline(config.PIPELINE_STAGES)
-
-    render_disclaimer()
+from UI.pages import home, results, screening  # noqa: E402
+from UI.utils.helpers import apply_base_styles  # noqa: E402
 
 
 def main() -> None:
@@ -76,10 +38,11 @@ def main() -> None:
     # Explicit url_path values are needed because every page function is
     # called ``render``.
     pages = [
-        st.Page(render_home, title="Home", icon=":material/home:", default=True),
+        st.Page(home.render, title="Home", icon=":material/home:", default=True),
         st.Page(screening.render, title="Screening", icon=":material/biotech:", url_path="screening"),
         st.Page(results.render, title="Results", icon=":material/analytics:", url_path="results"),
     ]
+    home.screening_page = pages[1]
     # Hidden: our own sidebar renders the navigation links.
     current_page = st.navigation(pages, position="hidden")
     render_sidebar(pages)

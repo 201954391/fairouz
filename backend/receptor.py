@@ -17,6 +17,7 @@ import hashlib
 import json
 import logging
 import math
+import re
 import subprocess
 import sys
 from collections.abc import Sequence
@@ -24,6 +25,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from importlib.metadata import version
 from pathlib import Path
+from typing import Any
 
 import gemmi
 
@@ -206,6 +208,63 @@ def convert_to_pdbqt(clean_path: Path, pdbqt_path: Path) -> None:
         )
 
 
+def normalise_line_endings(path: Path) -> None:
+    """Rewrite a text file with LF line endings.
+
+    Tools write CRLF on Windows, but Git stores LF (see ``.gitattributes``).
+    Normalising here makes the prepared files, and their checksums, identical
+    on every platform and checkout.
+    """
+    content = path.read_bytes()
+    normalised = content.replace(b"\r\n", b"\n")
+    if normalised != content:
+        path.write_bytes(normalised)
+
+
+def read_structure_provenance(path: Path) -> dict[str, Any]:
+    """Read provenance facts from a PDB file's own header records.
+
+    Using the file itself as the source keeps facts such as method and
+    resolution in one place. Missing records give ``None``.
+
+    Returns:
+        ``title``, ``method``, ``resolution_angstrom``, ``organism``,
+        ``deposited``, ``citation_title`` and ``citation_doi``.
+    """
+    records: dict[str, list[str]] = {}
+    resolution = None
+    deposited = None
+    with path.open(encoding="utf-8", errors="replace") as file:
+        for line in file:
+            record = line[:6].strip()
+            if record in ("ATOM", "HETATM"):
+                break  # Header records all come before the coordinates.
+            if record == "HEADER":
+                deposited = line[50:59].strip() or None
+            elif record in ("TITLE", "EXPDTA", "SOURCE"):
+                records.setdefault(record, []).append(line[10:80].strip())
+            elif record == "JRNL":
+                records.setdefault(f"JRNL_{line[12:16].strip()}", []).append(line[19:80].strip())
+            elif record == "REMARK" and line[7:10].strip() == "2":
+                match = re.search(r"RESOLUTION\.\s+([\d.]+)", line)
+                resolution = float(match.group(1)) if match else resolution
+
+    def joined(key: str) -> str | None:
+        parts = records.get(key)
+        return " ".join(parts).strip() if parts else None
+
+    organism = re.search(r"ORGANISM_SCIENTIFIC:\s*([^;]+);", joined("SOURCE") or "")
+    return {
+        "title": joined("TITLE"),
+        "method": joined("EXPDTA"),
+        "resolution_angstrom": resolution,
+        "organism": " ".join(organism.group(1).split()) if organism else None,
+        "deposited": deposited,
+        "citation_title": joined("JRNL_TITL"),
+        "citation_doi": joined("JRNL_DOI"),
+    }
+
+
 def prepare_receptor() -> dict:
     """Prepare the configured target and write a preparation log.
 
@@ -217,6 +276,8 @@ def prepare_receptor() -> dict:
 
     counts = clean_receptor(config.RAW_TARGET_FILE, config.CLEAN_RECEPTOR_FILE, config.RECEPTOR_CHAIN)
     convert_to_pdbqt(config.CLEAN_RECEPTOR_FILE, config.PREPARED_RECEPTOR_FILE)
+    for prepared in (config.CLEAN_RECEPTOR_FILE, config.PREPARED_RECEPTOR_FILE):
+        normalise_line_endings(prepared)
     box = calculate_binding_box(
         reference_ligand_coordinates(config.RAW_TARGET_FILE, config.REFERENCE_LIGAND_CHAIN),
         config.BINDING_BOX_PADDING,
@@ -234,7 +295,7 @@ def prepare_receptor() -> dict:
         "binding_box": {**asdict(box), "padding": config.BINDING_BOX_PADDING, "units": "angstrom"},
         "tool_versions": {"gemmi": gemmi.__version__, "meeko": version("meeko")},
     }
-    config.PREPARATION_LOG_FILE.write_text(json.dumps(log, indent=2), encoding="utf-8")
+    config.PREPARATION_LOG_FILE.write_text(json.dumps(log, indent=2) + "\n", encoding="utf-8", newline="\n")
     logger.info("Receptor prepared: %s", config.PREPARED_RECEPTOR_FILE)
     return log
 

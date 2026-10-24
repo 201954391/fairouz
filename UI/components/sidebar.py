@@ -1,11 +1,32 @@
-"""Shared sidebar: branding, navigation, system status and disclaimer."""
+"""Shared sidebar: branding, navigation, components and docking readiness."""
 
 from collections.abc import Sequence
 
 import streamlit as st
 
 import config
-from UI.utils.helpers import render_project_status
+from backend.docking import VinaNotFoundError, find_vina_executable
+from UI.utils.helpers import render_project_components
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def vina_location() -> str | None:
+    """Where AutoDock Vina was found, or None. Re-checked at most once a minute."""
+    try:
+        return str(find_vina_executable())
+    except VinaNotFoundError:
+        return None
+
+
+def _render_docking_readiness() -> None:
+    location = vina_location()
+    if location:
+        st.caption(":material/check_circle: **AutoDock Vina found**", help=location)
+    else:
+        st.caption(
+            ":material/cancel: **AutoDock Vina not found**: docking and ranking will be skipped. "
+            "See README › Installation."
+        )
 
 
 def render_sidebar(pages: Sequence[st.Page]) -> None:
@@ -23,13 +44,12 @@ def render_sidebar(pages: Sequence[st.Page]) -> None:
             st.page_link(page)
 
         st.divider()
-        st.markdown("**System status**")
-        st.caption(config.DEVELOPMENT_STAGE)
-        render_project_status()
+        render_project_components()
+        _render_docking_readiness()
 
         st.divider()
         st.caption(
             ":material/science: **Research use only.** Outputs are computational "
-            "predictions and require laboratory validation."
+            "and require experimental validation."
         )
-        st.caption(f"v{config.PROJECT_VERSION}")
+        st.caption(f"v{config.PROJECT_VERSION} · {config.DEVELOPMENT_STAGE}")
